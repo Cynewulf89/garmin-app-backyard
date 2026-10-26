@@ -1,0 +1,27 @@
+<resources>
+    <fitContributions>
+        <!-- Temps de repos du tour (en secondes) -->
+        <fitField id="0"
+                  displayInActivitySummary="true"
+                  displayInActivityLaps="true"
+                  sortOrder="0"
+                  unitLabel="@Strings.FitUnitSeconds"
+                  dataLabel="@Strings.FitRestTimeLabel" />
+
+        <!-- Temps de marche du tour (en secondes) -->
+        <fitField id="1"
+                  displayInActivitySummary="true"
+                  displayInActivityLaps="true"
+                  sortOrder="1"
+                  unitLabel="@Strings.FitUnitSeconds"
+                  dataLabel="@Strings.FitWalkTimeLabel" />
+
+        <!-- Temps de course du tour (en secondes) -->
+        <fitField id="2"
+                  displayInActivitySummary="true"
+                  displayInActivityLaps="true"
+                  sortOrder="2"
+                  unitLabel="@Strings.FitUnitSeconds"
+                  dataLabel="@Strings.FitRunTimeLabel" />
+    </fitContributions>
+</resources>

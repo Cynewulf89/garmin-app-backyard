@@ -1,0 +1,62 @@
+name: Release Build Selected Devices
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        device:
+          - fr945
+          - fenix6
+          - enduro
+          - epix2pro51mm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate Developer Key
+        run: |
+          openssl genrsa -out developer_key.pem 4096
+          openssl pkcs8 -topk8 -inform PEM -outform DER -in developer_key.pem -out developer_key.der -nocrypt
+
+      - name: Build PRG for ${{ matrix.device }}
+        uses: blackshadev/garmin-connectiq-build-action@9.2.0
+        with:
+          projectJungle: ./monkey.jungle
+          developerKey: ./developer_key.der
+          outputPath: ./bin/backyard-${{ matrix.device }}.prg
+          device: ${{ matrix.device }}
+          typeCheck: '0'
+
+      - name: Upload PRG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prg-${{ matrix.device }}
+          path: ./bin/backyard-${{ matrix.device }}.prg
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all built PRGs
+        uses: actions/download-artifact@v4
+        with:
+          path: ./all-prgs
+          merge-multiple: true
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ./all-prgs/*.prg
+          generate_release_notes: true

@@ -16,9 +16,17 @@ class GarminAppBackyardApp extends Application.AppBase {
     function onStop(state as Dictionary?) as Void {
     }
 
+    private var mDelegate as GarminAppBackyardDelegate?;
+
     // Return the initial view of your application here
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        return [ new GarminAppBackyardView() ];
+        var view = new GarminAppBackyardView();
+        mDelegate = new GarminAppBackyardDelegate(view);
+        return [ view, mDelegate ];
+    }
+
+    function getDelegate() as GarminAppBackyardDelegate? {
+        return mDelegate;
     }
 
 }
