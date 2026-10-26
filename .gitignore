@@ -1,4 +1,29 @@
-# VS Code & environment-specific files
-.vscode/
+# Connect IQ build outputs
 bin/
 *.prg
+*.iq
+
+# Developer & Private Signing Keys
+developer_key*
+*.der
+*.pem
+*.key
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.suo
+*.user
+*.workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+*.swp
+*.swo

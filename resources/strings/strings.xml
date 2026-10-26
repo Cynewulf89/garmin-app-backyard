@@ -1,3 +1,12 @@
 <resources>
     <string id="AppName">Backyard Ultra</string>
+    <string id="FitUnitSeconds">s</string>
+    <string id="FitUnitTours">tours</string>
+    <string id="FitRestTimeLabel">Temps Repos</string>
+    <string id="FitWalkTimeLabel">Temps Marche</string>
+    <string id="FitRunTimeLabel">Temps Course</string>
+    <string id="FitTotalLoopsLabel">Total Tours</string>
+    <string id="FitTotalRestLabel">Total Repos</string>
+    <string id="FitStateGraphLabel">État Backyard</string>
+    <string id="FitUnitState">état</string>
 </resources>
