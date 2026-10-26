@@ -16,10 +16,19 @@ class GarminAppBackyardDelegate extends WatchUi.BehaviorDelegate {
     private var mFitWalkField as FitContributor.Field?;
     private var mFitRunField as FitContributor.Field?;
 
+    // Champs FIT personnalisés globaux (Session Summary & Timeline Graph)
+    private var mFitTotalLoopsField as FitContributor.Field?;
+    private var mFitTotalRestField as FitContributor.Field?;
+    private var mFitStateGraphField as FitContributor.Field?;
+
     // Métriques courantes du tour
     private var mLoopWalkTimeSec as Number = 0;
     private var mLoopRunTimeSec as Number = 0;
     private var mLoopRestTimeSec as Number = 0;
+
+    // Métriques cumulées totales
+    private var mTotalRestTimeSec as Number = 0;
+    private var mCompletedLoopsTotal as Number = 0;
 
     function initialize(view as GarminAppBackyardView) {
         BehaviorDelegate.initialize();
@@ -52,7 +61,7 @@ class GarminAppBackyardDelegate extends WatchUi.BehaviorDelegate {
         if (Toybox has :ActivityRecording) {
             if (mSession == null) {
                 mSession = ActivityRecording.createSession({
-                    :name => "Backyard Ultra",
+                    :name => "Backyard TEST",
                     :sport => Activity.SPORT_RUNNING,
                     :subSport => Activity.SUB_SPORT_GENERIC
                 });
@@ -75,6 +84,28 @@ class GarminAppBackyardDelegate extends WatchUi.BehaviorDelegate {
                     2,
                     FitContributor.DATA_TYPE_UINT32,
                     { :mesgType => FitContributor.MESG_TYPE_LAP, :units => "s" }
+                );
+
+                // Métriques globales de résumé (Volet Connect IQ)
+                mFitTotalLoopsField = mSession.createField(
+                    "total_loops",
+                    3,
+                    FitContributor.DATA_TYPE_UINT32,
+                    { :mesgType => FitContributor.MESG_TYPE_SESSION, :units => "tours" }
+                );
+                mFitTotalRestField = mSession.createField(
+                    "total_rest",
+                    4,
+                    FitContributor.DATA_TYPE_UINT32,
+                    { :mesgType => FitContributor.MESG_TYPE_SESSION, :units => "s" }
+                );
+
+                // Graphique temporel continu (0 = Repos, 1 = Marche, 2 = Course)
+                mFitStateGraphField = mSession.createField(
+                    "backyard_state",
+                    5,
+                    FitContributor.DATA_TYPE_UINT8,
+                    { :mesgType => FitContributor.MESG_TYPE_RECORD }
                 );
 
                 mSession.start();
@@ -110,6 +141,14 @@ class GarminAppBackyardDelegate extends WatchUi.BehaviorDelegate {
 
     function saveSession() as Void {
         if (mSession != null) {
+            // Mise à jour finale des champs de résumé de session Connect IQ
+            if (mFitTotalLoopsField != null) {
+                mFitTotalLoopsField.setData(mCompletedLoopsTotal);
+            }
+            if (mFitTotalRestField != null) {
+                mFitTotalRestField.setData(mTotalRestTimeSec + mLoopRestTimeSec);
+            }
+
             if (mSession.isRecording()) {
                 mSession.stop();
             }
@@ -132,27 +171,33 @@ class GarminAppBackyardDelegate extends WatchUi.BehaviorDelegate {
         WatchUi.popView(WatchUi.SLIDE_DOWN);
     }
 
-    // Accumulation à 1 Hz des secondes de marche vs course
+    // Accumulation à 1 Hz des secondes de marche vs course et tracé temporel
     function recordActivitySecond(isWalking as Boolean, isResting as Boolean) as Void {
+        var stateValue = 2; // Par défaut : Course (2)
         if (isResting) {
             mLoopRestTimeSec++;
+            stateValue = 0; // Repos (0)
         } else if (isWalking) {
             mLoopWalkTimeSec++;
+            stateValue = 1; // Marche (1)
         } else {
             mLoopRunTimeSec++;
+            stateValue = 2; // Course (2)
+        }
+
+        // Alimentation du graphique continu si la session enregistre
+        if (mSession != null && mSession.isRecording() && mFitStateGraphField != null) {
+            mFitStateGraphField.setData(stateValue);
         }
     }
 
     // Mise en pause dès 6,706 km atteints
+    // Mise en pause dès 6,706 km atteints (ou 250m en test) et clôture immédiate du circuit
     function pauseRecordingForRest() as Void {
-        if (mSession != null && mSession.isRecording()) {
-            mSession.stop();
-        }
-    }
+        mCompletedLoopsTotal++;
 
-    // Finalisation du Lap FIT horaire avec injection des 3 métriques
-    function startNextHourlyLoop() as Void {
         if (mSession != null) {
+            // Écriture immédiate des métriques du tour achevé dans le circuit
             if (mFitRestField != null) {
                 mFitRestField.setData(mLoopRestTimeSec);
             }
@@ -163,16 +208,27 @@ class GarminAppBackyardDelegate extends WatchUi.BehaviorDelegate {
                 mFitRunField.setData(mLoopRunTimeSec);
             }
 
+            // Clôture officielle du circuit Garmin pour figer le tour
             mSession.addLap();
 
-            // Réinitialisation des compteurs pour la nouvelle boucle
-            mLoopWalkTimeSec = 0;
-            mLoopRunTimeSec = 0;
-            mLoopRestTimeSec = 0;
-
-            if (!mSession.isRecording()) {
-                mSession.start();
+            if (mSession.isRecording()) {
+                mSession.stop();
             }
+        }
+    }
+
+    // Lancement du nouveau tour
+    function startNextHourlyLoop() as Void {
+        // Cumul du repos sur la session entière
+        mTotalRestTimeSec += mLoopRestTimeSec;
+
+        // Réinitialisation des compteurs pour la nouvelle boucle
+        mLoopWalkTimeSec = 0;
+        mLoopRunTimeSec = 0;
+        mLoopRestTimeSec = 0;
+
+        if (mSession != null && !mSession.isRecording()) {
+            mSession.start();
         }
     }
 

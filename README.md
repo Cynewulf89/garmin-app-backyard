@@ -1,95 +1,43 @@
-# Garmin Backyard Ultra App (v1.0.0)
+# Garmin Backyard Ultra App - Mode Test (250m / 2.5 min)
 
-Application autonome (**Watch-App**) Connect IQ pour montres Garmin, spécialement conçue pour les épreuves de **Backyard Ultra** (boucle de 6,706 km à parcourir en moins d'une heure, avec départ toutes les heures).
-
-Lien du dépôt : [https://github.com/Cynewulf89/garmin-app-backyard](https://github.com/Cynewulf89/garmin-app-backyard)
+Version de test accélérée de l'application Connect IQ Backyard Ultra pour valider le comportement en situation réelle.
 
 ---
 
-## 📱 Aperçu des Écrans
+## ⚡ Paramètres du Mode Test
 
-| Écran 1 (En Avance) | Écran 1 (En Retard) | Écran 1 (Repos / Terminé) | Écran 2 (Stats & Batterie) |
-| :---: | :---: | :---: | :---: |
-| ![Écran 1 Avance](screenshots/screen1_avance.jpg) | ![Écran 1 Retard](screenshots/screen1_retard.jpg) | ![Écran 1 Repos](screenshots/screen1_repos.jpg) | ![Écran 2 Total](screenshots/screen2_total.jpg) |
-
----
-
-## ⚙️ Contrôles des Boutons & Enregistrement
-
-- **Bouton START / STOP** : Démarre l'épreuve. Un nouvel appui met en pause l'activité et ouvre le menu natif pour **Reprendre**, **Enregistrer** ou **Ignorer**.
-- **Boutons UP / DOWN** : Basculent entre l'**Écran 1** (gestion de la boucle) et l'**Écran 2** (statistiques globales).
-- **Bouton BACK** : Met en pause et ouvre également le menu de clôture d'activité si une session est active.
-
-
-### Écran 1 : Gestion de la Boucle (Mode Course)
-
-- **ALLURE MOY.** : Allure moyenne calculée sur la boucle en cours (min/km).
-- **DISTANCE** : Kilométrage parcouru sur la boucle actuelle (0 à 6,71 km).
-- **AVANCE / RETARD (Delta)** :
-  - **Vert (+)** si vous êtes en avance sur l'allure cible pour finir la boucle en moins de 60 minutes.
-  - **Rouge (-)** si vous êtes en retard.
-- **Réinitialisation automatique** : Cet écran se remet à zéro automatiquement à chaque heure pile.
-
-### Écran de Pause automatique (Dès 6,706 km atteints)
-
-- **Déclenchement automatique** : Dès que les 6,706 km du tour sont complétés, l'enregistrement GPS est automatiquement mis en pause pour éviter d'enregistrer des distances parasites au ravitaillement.
-- **Quart supérieur (1/4 - fond noir)** :
-  - Nombre de tours complétés : **X TOURS TERMINÉS** .
-  - Temps du tour tout juste achevé : Icône chronomètre ⏱️ et temps (**MM:SS**).
-- **Trois quarts inférieurs (3/4 - fond blanc)** :
-  - Libellé **TEMPS DE REPOS** en noir.
-  - Décompte géant en noir (**MM:SS**) du temps de repos restant avant le coup d'envoi de l'heure suivante.
-- **Alarme unique (Vibration)** : Une vibration distincte retentit automatiquement **1 minute** avant le départ du prochain tour (à 01:00 restante au repos).
-- **Reprise automatique** : À l'heure pile suivante, l'enregistrement GPS reprend automatiquement et l'écran repasse sur le mode course normal.
-
-### Écran 2 : Statistiques Globales & Autonomie
-
-- **En-tête** :
-  - **Batterie** : Icône et pourcentage restant affichés tout en haut.
-  - **Heure actuelle** : Affichage discret (**HH:MM**) sous la batterie.
-- **Milieu** :
-  - **TOUR** : Numéro du tour actuel (1, 2, 3...).
-  - **TOTAL KM** : Kilométrage total cumulé depuis le départ de l'épreuve.
-- **Bas de l'écran** :
-  - **TEMPS TOTAL** : Grand chronomètre complet (**HH:MM:SS**) affiché en chiffres géants (`FONT_NUMBER_HOT`) pour une lisibilité maximale en course.
+- **Distance par tour** : **250 mètres** (au lieu de 6,706 km).
+- **Durée par tour** : **2.5 minutes** (150 secondes, au lieu de 60 minutes).
+- **Alerte départ** : Vibration à **20 secondes** avant le départ du tour suivant.
 
 ---
 
-## 📊 Rendu dans Garmin Connect (Analyse des Circuits)
+## 📱 Fonctionnement & Écrans
 
-Grâce aux champs personnalisés Connect IQ (**FitContributor**), chaque tour de 60 minutes est automatiquement enrichi dans le tableau des circuits de l'application et du site web Garmin Connect :
+### 1. Écran 1 (Course & Repos)
+- **Pendant le tour (0 à 250 m)** :
+  - **Allure moyenne** sur le tour en cours.
+  - **Distance** parcourue sur le tour.
+  - **Avance / Retard** (vert si en avance pour boucler en < 5 min, rouge si en retard).
+- **Fin de tour (dès 250 m atteints)** :
+  - **Bascule automatique** sur l'affichage de pause (que vous soyez sur l'écran 1 ou l'écran 2).
+  - Haut : Nombre de tours terminés + chrono du tour achevé.
+  - Bas : **Décompte du temps de repos restant** jusqu'aux 5:00.
+  - Pause automatique de la trace GPS pendant le repos.
+- **Nouveau départ (à 5 min pile)** :
+  - **Bascule automatique** vers l'écran 1 en mode course.
+  - Reprise automatique de la trace GPS et remise à zéro de la distance du tour.
 
-![Garmin Connect Laps](screenshots/garmin_connect_laps.jpg)
-
-- **Temps Course** : Temps effectif passé à courir (cadence ≥ 145 spm).
-- **Temps Marche** : Temps passé à marcher pendant la boucle (cadence < 145 spm).
-- **Temps Repos** : Temps passé au repos au ravitaillement avant le départ de l'heure suivante.
+### 2. Écran 2 (Statistiques Globales)
+- Accessible via les touches **UP / DOWN**.
+- **Batterie** (%) et **Heure actuelle** en haut.
+- **Numéro du tour** et **Distance totale cumulée**.
+- **Temps total ininterrompu** (ne s'arrête jamais lors des pauses de session ou de fin de boucle).
 
 ---
 
-## 🚀 Installation
+## 🎮 Contrôles
 
-### Prérequis
-
-- Une montre Garmin compatible : **Forerunner 945**, **Fenix 6**, **Enduro**, ou **Epix Pro (51mm)**.
-- [Garmin Express](https://www.garmin.com/express/) sur ordinateur ou smartphone avec Garmin Connect.
-
-### Méthode 1 : Fichier `.prg` direct (Recommandé)
-
-1. Téléchargez le fichier correspondant à votre modèle (ex : `backyard-fr945.prg` pour Forerunner 945) depuis les [Releases](https://github.com/Cynewulf89/garmin-app-backyard/releases).
-2. Connectez la montre en USB à votre PC.
-3. Copiez le fichier dans le dossier `/GARMIN/APPS/` de la montre en le renommant `backyard.prg`.
-4. Éjectez l'appareil en toute sécurité puis redémarrez la montre.
-5. L'application **Backyard Ultra** apparaît dans votre liste d'activités (ou sous "Ajouter" tout en bas).
-
-### Méthode 2 : Compilation via VS Code (Développeurs)
-
-1. Clonez le dépôt :
-
-   ```bash
-   git clone https://github.com/Cynewulf89/garmin-app-backyard.git
-   ```
-
-2. Ouvrez le dossier dans VS Code.
-3. Exécutez la commande `Monkey C: Build Current Project` (`Ctrl+Shift+P`).
-4. Branchez votre montre en USB et copiez le fichier `.prg` compilé dans le dossier `GARMIN/APPS/` de l'appareil.
+- **START / STOP** : Lancer l'activité / Menu de fin de session (Reprendre, Enregistrer, Ignorer).
+- **UP / DOWN** : Alterner entre Écran 1 et Écran 2.
+- **BACK** : Pause et menu de clôture d'activité.

@@ -18,10 +18,37 @@
 
         <!-- Temps de course du tour (en secondes) -->
         <fitField id="2"
-                  displayInActivitySummary="true"
+                  displayInActivitySummary="false"
                   displayInActivityLaps="true"
                   sortOrder="2"
                   unitLabel="@Strings.FitUnitSeconds"
                   dataLabel="@Strings.FitRunTimeLabel" />
+
+        <!-- Total de tours complétés (Session Summary) -->
+        <fitField id="3"
+                  displayInActivitySummary="true"
+                  displayInActivityLaps="false"
+                  sortOrder="3"
+                  unitLabel="@Strings.FitUnitTours"
+                  dataLabel="@Strings.FitTotalLoopsLabel" />
+
+        <!-- Total du temps de repos accumulé (Session Summary) -->
+        <fitField id="4"
+                  displayInActivitySummary="true"
+                  displayInActivityLaps="false"
+                  sortOrder="4"
+                  unitLabel="@Strings.FitUnitSeconds"
+                  dataLabel="@Strings.FitTotalRestLabel" />
+
+        <!-- Graphique temporel : 0 = Repos, 1 = Marche, 2 = Course (Timeline Chart) -->
+        <fitField id="5"
+                  displayInChart="true"
+                  displayInActivitySummary="false"
+                  displayInActivityLaps="false"
+                  sortOrder="5"
+                  fillColor="#00AA00"
+                  unitLabel="@Strings.FitUnitState"
+                  chartTitle="@Strings.FitStateGraphLabel"
+                  dataLabel="@Strings.FitStateGraphLabel" />
     </fitContributions>
 </resources>

@@ -11,7 +11,9 @@ import Toybox.WatchUi;
 class GarminAppBackyardView extends WatchUi.View {
 
     // Constante : distance exacte d'un tour Backyard Ultra (6,706 km)
-    private const LOOP_DISTANCE_METERS = 6706.0;
+    // Configuration de Test Rapide : 250 mètres / 2.5 minutes (150 secondes) par tour
+    private const LOOP_DISTANCE_METERS = 250.0;
+    private const LOOP_PERIOD_SECONDS = 150;
 
     // Écran actif : 1 ou 2
     private var mCurrentScreen as Number = 1;
@@ -149,8 +151,8 @@ class GarminAppBackyardView extends WatchUi.View {
             return;
         }
 
-        // Détection du changement d'heure pile (reset strict chaque 3600 secondes)
-        var currentLoopIndex = totalElapsedSec / 3600;
+        // Détection du changement de tour (reset strict chaque LOOP_PERIOD_SECONDS)
+        var currentLoopIndex = totalElapsedSec / LOOP_PERIOD_SECONDS;
         var totalDist = (info.elapsedDistance != null) ? info.elapsedDistance.toDouble() : 0.0;
 
         var isLoopFinished = false;
@@ -169,7 +171,7 @@ class GarminAppBackyardView extends WatchUi.View {
             }
         }
 
-        // Distance relative au tour courant (plafonnée à 6,706 km)
+        // Distance relative au tour courant (plafonnée à 10 m en test)
         var loopDist = totalDist - mLoopStartDistanceMeters;
         if (loopDist >= LOOP_DISTANCE_METERS) {
             loopDist = LOOP_DISTANCE_METERS;
@@ -180,7 +182,7 @@ class GarminAppBackyardView extends WatchUi.View {
                 mCurrentScreen = 1;
                 mCompletedLoopsCount = currentLoopIndex + 1;
                 // Calcul du chrono du tour terminé
-                var lSec = totalElapsedSec % 3600;
+                var lSec = totalElapsedSec % LOOP_PERIOD_SECONDS;
                 var lMin = lSec / 60;
                 var lRemainingSec = lSec % 60;
                 mLastLoopTimeStr = Lang.format("$1$:$2$", [lMin.format("%02d"), lRemainingSec.format("%02d")]);
@@ -203,8 +205,8 @@ class GarminAppBackyardView extends WatchUi.View {
         mTotalDistStr = Lang.format("$1$ km", [totalDistKm.format("%.2f")]);
         mLoopNumStr = Lang.format("$1$", [currentLoopNum]);
 
-        // Temps écoulé dans l'heure courante (0 à 3599 s)
-        var loopTimeSec = totalElapsedSec % 3600;
+        // Temps écoulé dans le tour courant (0 à LOOP_PERIOD_SECONDS - 1)
+        var loopTimeSec = totalElapsedSec % LOOP_PERIOD_SECONDS;
 
         // Évaluation Course vs Marche (seuil de cadence standard 145 spm ou vitesse de marche)
         var isWalking = false;
@@ -223,13 +225,13 @@ class GarminAppBackyardView extends WatchUi.View {
 
         // Si la boucle est finie, affichage du temps de repos restant avant le prochain départ
         if (isLoopFinished) {
-            var restTimeSec = 3600 - loopTimeSec;
+            var restTimeSec = LOOP_PERIOD_SECONDS - loopTimeSec;
             var rMin = restTimeSec / 60;
             var rSec = restTimeSec % 60;
             mRestCountdownStr = Lang.format("$1$:$2$", [rMin.format("%02d"), rSec.format("%02d")]);
 
-            // Alarme vibration unique à 1 minute avant de reprendre le tour (restTimeSec <= 60)
-            if (restTimeSec <= 60 && !mVibeAlertTriggered) {
+            // Alarme vibration unique à 20 secondes avant de reprendre le tour (mode test 2.5 min)
+            if (restTimeSec <= 20 && !mVibeAlertTriggered) {
                 mVibeAlertTriggered = true;
                 triggerOneMinuteAlert();
             }
@@ -244,8 +246,8 @@ class GarminAppBackyardView extends WatchUi.View {
                 mPaceStr = "--:--";
             }
 
-            // Delta avance/retard calculé par rapport à la vitesse seuil Backyard (6,706 km en 3600s)
-            var expectedTimeSec = (loopDist / (LOOP_DISTANCE_METERS / 3600.0)).toNumber();
+            // Delta avance/retard calculé par rapport à la vitesse seuil de test (10m en 60s)
+            var expectedTimeSec = (loopDist / (LOOP_DISTANCE_METERS / LOOP_PERIOD_SECONDS.toDouble())).toNumber();
             var deltaSec = expectedTimeSec - loopTimeSec;
             if (deltaSec >= 0) {
                 mIsAhead = true;
