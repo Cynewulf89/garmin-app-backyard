@@ -1,5 +1,5 @@
 <resources>
-    <string id="AppName">Backyard Ultra</string>
+    <string id="AppName">Backyard Ultra Little</string>
     <string id="FitUnitSeconds">s</string>
     <string id="FitUnitTours">tours</string>
     <string id="FitRestTimeLabel">Temps Repos</string>

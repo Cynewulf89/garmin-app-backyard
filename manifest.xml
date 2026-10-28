@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
-    <iq:application entry="GarminAppBackyardApp" id="a8f93e1c2d4b4a7ea391582046890123" launcherIcon="@Drawables.LauncherIcon" minApiLevel="3.0.0" name="@Strings.AppName" type="watch-app" version="1.0.0">
+    <iq:application entry="GarminAppBackyardApp" id="12e65e97316b4626a06ea71d73a069da" launcherIcon="@Drawables.LauncherIcon" minApiLevel="3.0.0" name="@Strings.AppName" type="watch-app" version="1.0.0">
         <iq:products>
             <iq:product id="fr945"/>
             <iq:product id="fenix6"/>
