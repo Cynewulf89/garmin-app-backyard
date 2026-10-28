@@ -10,8 +10,9 @@ import Toybox.WatchUi;
 
 class GarminAppBackyardView extends WatchUi.View {
 
-    // Constante : distance exacte d'un tour Backyard Ultra (6,706 km)
-    private const LOOP_DISTANCE_METERS = 6706.0;
+    // Configuration de Test Rapide : 250 mètres / 2.5 minutes (150 secondes) par tour
+    private const LOOP_DISTANCE_METERS = 250.0;
+    private const LOOP_PERIOD_SECONDS = 150;
 
     // Écran actif : 1 ou 2
     private var mCurrentScreen as Number = 1;
@@ -149,8 +150,8 @@ class GarminAppBackyardView extends WatchUi.View {
             return;
         }
 
-        // Détection du changement d'heure pile (reset strict chaque 3600 secondes)
-        var currentLoopIndex = totalElapsedSec / 3600;
+        // Détection du changement de tour (reset strict chaque LOOP_PERIOD_SECONDS)
+        var currentLoopIndex = totalElapsedSec / LOOP_PERIOD_SECONDS;
         var totalDist = (info.elapsedDistance != null) ? info.elapsedDistance.toDouble() : 0.0;
 
         var isLoopFinished = false;
@@ -169,7 +170,7 @@ class GarminAppBackyardView extends WatchUi.View {
             }
         }
 
-        // Distance relative au tour courant (plafonnée à 6,706 km)
+        // Distance relative au tour courant (plafonnée à 250m en test)
         var loopDist = totalDist - mLoopStartDistanceMeters;
         if (loopDist >= LOOP_DISTANCE_METERS) {
             loopDist = LOOP_DISTANCE_METERS;
@@ -180,7 +181,7 @@ class GarminAppBackyardView extends WatchUi.View {
                 mCurrentScreen = 1;
                 mCompletedLoopsCount = currentLoopIndex + 1;
                 // Calcul du chrono du tour terminé
-                var lSec = totalElapsedSec % 3600;
+                var lSec = totalElapsedSec % LOOP_PERIOD_SECONDS;
                 var lMin = lSec / 60;
                 var lRemainingSec = lSec % 60;
                 mLastLoopTimeStr = Lang.format("$1$:$2$", [lMin.format("%02d"), lRemainingSec.format("%02d")]);
@@ -199,12 +200,12 @@ class GarminAppBackyardView extends WatchUi.View {
         var totalDistKm = totalDist / 1000.0;
         var currentLoopNum = currentLoopIndex + 1;
 
-        mLoopDistStr = Lang.format("$1$ km", [loopDistKm.format("%.2f")]);
-        mTotalDistStr = Lang.format("$1$ km", [totalDistKm.format("%.2f")]);
+        mLoopDistStr = loopDistKm.format("%.2f");
+        mTotalDistStr = totalDistKm.format("%.2f");
         mLoopNumStr = Lang.format("$1$", [currentLoopNum]);
 
-        // Temps écoulé dans l'heure courante (0 à 3599 s)
-        var loopTimeSec = totalElapsedSec % 3600;
+        // Temps écoulé dans le tour courant (0 à LOOP_PERIOD_SECONDS - 1)
+        var loopTimeSec = totalElapsedSec % LOOP_PERIOD_SECONDS;
 
         // Évaluation Course vs Marche (seuil de cadence standard 145 spm ou vitesse de marche)
         var isWalking = false;
@@ -223,13 +224,13 @@ class GarminAppBackyardView extends WatchUi.View {
 
         // Si la boucle est finie, affichage du temps de repos restant avant le prochain départ
         if (isLoopFinished) {
-            var restTimeSec = 3600 - loopTimeSec;
+            var restTimeSec = LOOP_PERIOD_SECONDS - loopTimeSec;
             var rMin = restTimeSec / 60;
             var rSec = restTimeSec % 60;
             mRestCountdownStr = Lang.format("$1$:$2$", [rMin.format("%02d"), rSec.format("%02d")]);
 
-            // Alarme vibration unique à 1 minute avant de reprendre le tour (restTimeSec <= 60)
-            if (restTimeSec <= 60 && !mVibeAlertTriggered) {
+            // Alarme vibration unique à 20 secondes avant de reprendre le tour (mode test 2.5 min)
+            if (restTimeSec <= 20 && !mVibeAlertTriggered) {
                 mVibeAlertTriggered = true;
                 triggerOneMinuteAlert();
             }
@@ -244,8 +245,8 @@ class GarminAppBackyardView extends WatchUi.View {
                 mPaceStr = "--:--";
             }
 
-            // Delta avance/retard calculé par rapport à la vitesse seuil Backyard (6,706 km en 3600s)
-            var expectedTimeSec = (loopDist / (LOOP_DISTANCE_METERS / 3600.0)).toNumber();
+            // Delta avance/retard calculé par rapport à la vitesse seuil de test
+            var expectedTimeSec = (loopDist / (LOOP_DISTANCE_METERS / LOOP_PERIOD_SECONDS.toDouble())).toNumber();
             var deltaSec = expectedTimeSec - loopTimeSec;
             if (deltaSec >= 0) {
                 mIsAhead = true;
@@ -299,7 +300,7 @@ class GarminAppBackyardView extends WatchUi.View {
         }
     }
 
-    // Écran 1 : Course (Allure/Distance/Delta) OU Repos dédié (1/3 TOUR TERMINÉ, 2/3 REPOS)
+    // Écran 1 : Course (Allure/Distance/Delta) OU Repos dédié (Chrono tour / Repos géant) - Version Little (Données pures agrandies)
     private function drawScreenOne(dc as Graphics.Dc, width as Number, height as Number, centerX as Number) as Void {
         if (mIsLoopPaused) {
             // Mode Pause Dédié : 1/4 Haut (Fond Noir) & 3/4 Bas (Fond Blanc)
@@ -314,39 +315,18 @@ class GarminAppBackyardView extends WatchUi.View {
             dc.setPenWidth(1);
             dc.drawLine(0, splitY, width, splitY);
 
-            // --- 1/4 HAUT (Fond noir) ---
-            var loopLabel = (mCompletedLoopsCount > 1)
-                ? Lang.format("$1$ TOURS TERMINÉS", [mCompletedLoopsCount])
-                : (mCompletedLoopsCount == 1 ? "1 TOUR TERMINÉ" : "TOUR TERMINÉ");
-
+            // --- 1/4 HAUT (Fond noir) : Tour complété + Chrono du tour ---
+            // Numéro de tour à gauche
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, (height * 0.05).toNumber(), Graphics.FONT_XTINY, loopLabel, Graphics.TEXT_JUSTIFY_CENTER);
+            var loopNumText = Lang.format("$1$", [mCompletedLoopsCount]);
+            dc.drawText((width * 0.28).toNumber(), (height * 0.13).toNumber(), Graphics.FONT_MEDIUM, loopNumText, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            // Chrono du tour avec petite icône chronomètre ⏱️ vectorielle
-            var timeFont = Graphics.FONT_SMALL;
-            var timeDims = dc.getTextDimensions(mLastLoopTimeStr, timeFont);
-            var textWidth = timeDims[0];
-            var iconRadius = 4;
-            var gap = 5;
-            var totalBlockWidth = (iconRadius * 2) + gap + textWidth;
-            var startX = centerX - (totalBlockWidth / 2);
-            var chronoY = (height * 0.13).toNumber();
+            // Chrono du tour tout juste achevé à droite
+            dc.drawText((width * 0.70).toNumber(), (height * 0.13).toNumber(), Graphics.FONT_MEDIUM, mLastLoopTimeStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            // Dessin icône chronomètre
-            var iconCenterX = startX + iconRadius;
-            var iconCenterY = chronoY + (timeDims[1] / 2);
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawCircle(iconCenterX, iconCenterY, iconRadius);
-            dc.drawLine(iconCenterX, iconCenterY - iconRadius - 2, iconCenterX, iconCenterY - iconRadius);
-            dc.drawLine(iconCenterX, iconCenterY, iconCenterX, iconCenterY - 2);
-
-            // Temps du tour
-            dc.drawText(startX + (iconRadius * 2) + gap, chronoY, timeFont, mLastLoopTimeStr, Graphics.TEXT_JUSTIFY_LEFT);
-
-            // --- 3/4 BAS (Fond blanc) ---
+            // --- 3/4 BAS (Fond blanc) : Décompte géant sans texte parasite ---
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, (height * 0.35).toNumber(), Graphics.FONT_TINY, "TEMPS DE REPOS", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, (height * 0.48).toNumber(), Graphics.FONT_NUMBER_HOT, mRestCountdownStr, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (height * 0.60).toNumber(), Graphics.FONT_NUMBER_HOT, mRestCountdownStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         } else {
             // Indicateur de statut GPS tout en haut (Cercle vert = FIX OK, Rouge = Recherche)
             var gpsDotY = (height * 0.04).toNumber();
@@ -354,76 +334,58 @@ class GarminAppBackyardView extends WatchUi.View {
             dc.setColor(gpsColor, Graphics.COLOR_TRANSPARENT);
             dc.fillCircle(centerX, gpsDotY, 3);
 
-            // Mode Course normal : 3 zones bien équilibrées pour écran rond
+            // Mode Course : 3 zones de données pures agrandies au maximum sans déborder
             dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(1);
-            dc.drawLine(25, (height * 0.35).toNumber(), width - 25, (height * 0.35).toNumber());
-            dc.drawLine(25, (height * 0.67).toNumber(), width - 25, (height * 0.67).toNumber());
+            dc.drawLine(25, (height * 0.32).toNumber(), width - 25, (height * 0.32).toNumber());
+            dc.drawLine(25, (height * 0.68).toNumber(), width - 25, (height * 0.68).toNumber());
 
-            // Zone 1 : Allure moyenne
-            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, (height * 0.10).toNumber(), Graphics.FONT_XTINY, "ALLURE MOY.", Graphics.TEXT_JUSTIFY_CENTER);
+            // Zone 1 : Allure boucle (centrée verticalement dans le tiers haut)
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, (height * 0.18).toNumber(), Graphics.FONT_MEDIUM, mPaceStr, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (height * 0.19).toNumber(), Graphics.FONT_LARGE, mPaceStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            // Zone 2 : Distance boucle
-            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, (height * 0.40).toNumber(), Graphics.FONT_XTINY, "DISTANCE", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, (height * 0.49).toNumber(), Graphics.FONT_LARGE, mLoopDistStr, Graphics.TEXT_JUSTIFY_CENTER);
+            // Zone 2 : Distance boucle (Chiffres géants centrés au milieu de l'écran)
+            dc.drawText(centerX, (height * 0.50).toNumber(), Graphics.FONT_NUMBER_HOT, mLoopDistStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            // Zone 3 : Avance / Retard
-            var deltaLabel = mIsAhead ? "AVANCE" : "RETARD";
+            // Zone 3 : Avance / Retard (centré verticalement dans le tiers bas)
             var deltaColor = mIsAhead ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
             dc.setColor(deltaColor, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, (height * 0.71).toNumber(), Graphics.FONT_XTINY, deltaLabel, Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, (height * 0.79).toNumber(), Graphics.FONT_MEDIUM, mDeltaStr, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (height * 0.81).toNumber(), Graphics.FONT_LARGE, mDeltaStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         }
     }
 
-    // Écran 2 : Batterie & Heure en haut, Tour & Distance, Grand Temps Total en bas
+    // Écran 2 : Heure & Batterie côte à côte en haut (sans icône), Tour & Distance, Grand Temps Total en bas
     private function drawScreenTwo(dc as Graphics.Dc, width as Number, height as Number, centerX as Number) as Void {
-        // En haut : Icône batterie + pourcentage
+        // En haut : Heure à gauche | % Batterie à droite (sans logo)
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        var battX = centerX - 26;
-        var battY = (height * 0.05).toNumber();
-        dc.drawRectangle(battX, battY, 18, 9);
-        dc.fillRectangle(battX + 18, battY + 2, 2, 5);
-        dc.drawText(centerX + 6, battY - 3, Graphics.FONT_XTINY, mBatteryStr, Graphics.TEXT_JUSTIFY_LEFT);
+        var topY = (height * 0.11).toNumber();
+        dc.drawText((width * 0.35).toNumber(), topY, Graphics.FONT_MEDIUM, mClockTimeStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText((width * 0.67).toNumber(), topY, Graphics.FONT_MEDIUM, mBatteryStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        // Heure actuelle juste sous la batterie
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(centerX, (height * 0.12).toNumber(), Graphics.FONT_XTINY, mClockTimeStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Séparateur supérieur (sous la zone supérieure)
-        var lineY = (height * 0.44).toNumber();
+        // Séparateur horizontal supérieur
+        var topLineY = (height * 0.21).toNumber();
+        var midLineY = (height * 0.48).toNumber();
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(20, lineY, width - 20, lineY);
+        dc.setPenWidth(1);
+        dc.drawLine(35, topLineY, width - 35, topLineY);
+        dc.drawLine(20, midLineY, width - 20, midLineY);
 
         // Séparateur vertical entre Tour et KM Total
-        dc.drawLine(centerX, (height * 0.23).toNumber(), centerX, lineY);
+        dc.drawLine(centerX, topLineY, centerX, midLineY);
 
-        // Zone Tour
+        // Zone Tour (Donnée seule agrandie)
         var leftX = width * 0.28;
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX.toNumber(), (height * 0.24).toNumber(), Graphics.FONT_XTINY, "TOUR", Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX.toNumber(), (height * 0.31).toNumber(), Graphics.FONT_MEDIUM, mLoopNumStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(leftX.toNumber(), (height * 0.34).toNumber(), Graphics.FONT_LARGE, mLoopNumStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        // Zone Distance (adaptée aux centaines de km sans déborder)
+        // Zone Distance totale (Donnée seule agrandie sans "km")
         var rightX = width * 0.72;
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(rightX.toNumber(), (height * 0.24).toNumber(), Graphics.FONT_XTINY, "TOTAL KM", Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(rightX.toNumber(), (height * 0.31).toNumber(), Graphics.FONT_SMALL, mTotalDistStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(rightX.toNumber(), (height * 0.34).toNumber(), Graphics.FONT_LARGE, mTotalDistStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        // Bas : Grand affichage TEMPS TOTAL parfaitement calé dans l'arc inférieur
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(centerX, (height * 0.49).toNumber(), Graphics.FONT_TINY, "TEMPS TOTAL", Graphics.TEXT_JUSTIFY_CENTER);
-
+        // Bas : Grand affichage TEMPS TOTAL (FONT_NUMBER_MEDIUM respecte l'arc inférieur sur 8 caractères HH:MM:SS)
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(centerX, (height * 0.59).toNumber(), Graphics.FONT_NUMBER_MEDIUM, mTotalTimeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, (height * 0.69).toNumber(), Graphics.FONT_NUMBER_MEDIUM, mTotalTimeStr, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
 }

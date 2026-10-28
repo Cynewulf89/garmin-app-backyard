@@ -61,7 +61,7 @@ class GarminAppBackyardDelegate extends WatchUi.BehaviorDelegate {
         if (Toybox has :ActivityRecording) {
             if (mSession == null) {
                 mSession = ActivityRecording.createSession({
-                    :name => "Backyard",
+                    :name => "Backyard Little TEST",
                     :sport => Activity.SPORT_RUNNING,
                     :subSport => Activity.SUB_SPORT_GENERIC
                 });

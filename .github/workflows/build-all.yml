@@ -29,7 +29,7 @@ jobs:
         with:
           projectJungle: ./monkey.jungle
           developerKey: ./developer_key.der
-          outputPath: ./bin/backyard-${{ matrix.device }}.prg
+          outputPath: ./bin/backyard-little-${{ matrix.device }}.prg
           device: ${{ matrix.device }}
           typeCheck: '0'
 
@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: prg-${{ matrix.device }}
-          path: ./bin/backyard-${{ matrix.device }}.prg
+          path: ./bin/backyard-little-${{ matrix.device }}.prg
 
   build-iq:
     runs-on: ubuntu-latest
@@ -53,7 +53,7 @@ jobs:
         with:
           projectJungle: ./monkey.jungle
           developerKey: ./developer_key.der
-          outputPath: ./bin/backyard.iq
+          outputPath: ./bin/backyard-little-test.iq
           device: fr945
           extraArgs: '-e'
           typeCheck: '0'
@@ -62,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: iq-package
-          path: ./bin/backyard.iq
+          path: ./bin/backyard-little-test.iq
 
   release:
     needs: [build, build-iq]
